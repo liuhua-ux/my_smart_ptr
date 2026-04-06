@@ -1,38 +1,34 @@
 #pragma once
 
 #include <functional>
+#include <utility>
 
-// 辅助函数：智能指针构造
-template <typename T, typename... Args>
-shared_ptr<T> make_smart(Args&&... args)
-{
-	return shared_ptr<T>(new T(std::forward<Args>(args)...));
-}
+template <typename T> class my_shared_ptr;
+template <typename T> class my_unique_ptr;
 
 template <typename T, typename... Args>
-unique_ptr<T> make_smart(Args&&... args)
-{
-	return unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
+my_shared_ptr<T> make_shared_smart(Args&&... args);
 
+template <typename T, typename... Args>
+my_unique_ptr<T> make_unique_smart(Args&&... args);
 
 //shared指针
 template<typename T>
-class shared_ptr
+class my_shared_ptr
 {
 	template <typename U, typename... Args>
-	friend shared_ptr<U> make_smart(Args&&... args);
+	friend my_shared_ptr<U> make_shared_smart(Args&&... args);
 
 public:
 	//构造与析构函数
-	shared_ptr();
-	explicit shared_ptr(T*);
-	shared_ptr(const shared_ptr&);
-	shared_ptr(T*, std::function<void(T*)>);
-	~shared_ptr();
+	my_shared_ptr();
+	explicit my_shared_ptr(T*);
+	my_shared_ptr(const my_shared_ptr&);
+	my_shared_ptr(T*, std::function<void(T*)>);
+	~my_shared_ptr();
 
 	//运算符重载
-	shared_ptr& operator = (const shared_ptr&);
+	my_shared_ptr& operator = (const my_shared_ptr&);
 	T& operator*() const;
 	T* operator->() const;
 	explicit operator bool() const;
@@ -57,29 +53,29 @@ private:
 
 //默认delete函数的定义
 template <typename T>
-std::function<void(T*)> shared_ptr<T>::default_del = [](T* p) {delete p; p = nullptr; };
+std::function<void(T*)> my_shared_ptr<T>::default_del = [](T* p) {delete p; p = nullptr; };
 
 //构造函数定义
 template <typename T>
-shared_ptr<T>::shared_ptr()
+my_shared_ptr<T>::my_shared_ptr()
 	:m_pobject(nullptr), m_p_use_count(nullptr)
 {
 }
 
 template <typename T>
-shared_ptr<T>::shared_ptr(T* p)
+my_shared_ptr<T>::my_shared_ptr(T* p)
 	: m_pobject(p), m_p_use_count(new unsigned(1)), m_del(default_del)
 {
 }
 
 template <typename T>
-shared_ptr<T>::shared_ptr(T* p, std::function<void(T*)> del)
+my_shared_ptr<T>::my_shared_ptr(T* p, std::function<void(T*)> del)
 	: m_pobject(p), m_p_use_count(new unsigned(1)), m_del(del)
 {
 }
 
 template <typename T>
-shared_ptr<T>::shared_ptr(const shared_ptr& rhs)
+my_shared_ptr<T>::my_shared_ptr(const my_shared_ptr& rhs)
 	: m_pobject(rhs.m_pobject), m_p_use_count(rhs.m_p_use_count), m_del(rhs.m_del)
 {
 	if (m_p_use_count)
@@ -88,7 +84,7 @@ shared_ptr<T>::shared_ptr(const shared_ptr& rhs)
 
 // 析构函数定义
 template <typename T>
-shared_ptr<T>::~shared_ptr()
+my_shared_ptr<T>::~my_shared_ptr()
 {
 	if (m_p_use_count != nullptr) {
 		(*m_p_use_count)--;
@@ -105,7 +101,7 @@ shared_ptr<T>::~shared_ptr()
 
 //运算符重载定义
 template <typename T>
-shared_ptr<T>& shared_ptr<T>::operator = (const shared_ptr<T>& other)
+my_shared_ptr<T>& my_shared_ptr<T>::operator = (const my_shared_ptr<T>& other)
 {
 	// 防止自赋值
 	if (this == &other)
@@ -131,31 +127,31 @@ shared_ptr<T>& shared_ptr<T>::operator = (const shared_ptr<T>& other)
 }
 
 template <typename T>
-T& shared_ptr<T>::operator*() const
+T& my_shared_ptr<T>::operator*() const
 {
 	return *m_pobject;
 }
 template <typename T>
-T* shared_ptr<T>::operator->() const
+T* my_shared_ptr<T>::operator->() const
 {
 	return m_pobject;
 }
 
 template <typename T>
-shared_ptr<T>::operator bool() const
+my_shared_ptr<T>::operator bool() const
 {
 	return m_pobject != nullptr;
 }
 
 template <typename T>
-bool shared_ptr<T>::unique() const
+bool my_shared_ptr<T>::unique() const
 {
 	if (!m_p_use_count) return false;
 	return *m_p_use_count == 1;
 }
 
 template <typename T>
-void shared_ptr<T>::reset()
+void my_shared_ptr<T>::reset()
 {
 	if (m_p_use_count != nullptr)
 	{
@@ -172,7 +168,7 @@ void shared_ptr<T>::reset()
 }
 
 template <typename T>
-void shared_ptr<T>::reset(T* p)
+void my_shared_ptr<T>::reset(T* p)
 {
 	reset();
 
@@ -190,7 +186,7 @@ void shared_ptr<T>::reset(T* p)
 }
 
 template <typename T>
-void shared_ptr<T>::reset(T* p, std::function<void(T*)> del)
+void my_shared_ptr<T>::reset(T* p, std::function<void(T*)> del)
 {
 	reset();
 
@@ -198,7 +194,7 @@ void shared_ptr<T>::reset(T* p, std::function<void(T*)> del)
 
 	if (m_pobject != nullptr)
 	{
-		m_p_use_count = new unsigned(1));
+		m_p_use_count = new unsigned(1);
 	}
 	else
 	{
@@ -209,7 +205,7 @@ void shared_ptr<T>::reset(T* p, std::function<void(T*)> del)
 }
 
 template <typename T>
-T* shared_ptr<T>::get() const
+T* my_shared_ptr<T>::get() const
 {
 	return m_pobject;
 }
@@ -217,26 +213,27 @@ T* shared_ptr<T>::get() const
 
 //unique指针
 template <typename T>
-class unique_ptr
+class my_unique_ptr
 {
 	template <typename U, typename... Args>
-	friend unique_ptr<U> make_smart(Args&&... args);
+	friend my_unique_ptr<U> make_unique_smart(Args&&... args);
 
 public:
 	//构造与析构函数
-	unique_ptr() noexcept;
-	explicit unique_ptr(T* ptr) noexcept;
-	unique_ptr(unique_ptr&& other) noexcept;
-	unique_ptr(const unique_ptr&) = delete;
-	~unique_ptr() noexcept;
+	my_unique_ptr() noexcept;
+	explicit my_unique_ptr(T* ptr) noexcept;
+	my_unique_ptr(my_unique_ptr&& other) noexcept;
+	my_unique_ptr(const my_unique_ptr&) = delete;
+	~my_unique_ptr() noexcept;
 
 	//运算符重载
 	//unique指针移动赋值
-	unique_ptr& operator=(unique_ptr&& other) noexcept;
+	my_unique_ptr& operator=(my_unique_ptr&& other) noexcept;
 	//禁止拷贝赋值
-	unique_ptr& operator=(const unique_ptr&) = delete;
+	my_unique_ptr& operator=(const my_unique_ptr&) = delete;
 	T& operator*() const noexcept;
 	T* operator->() const noexcept;
+	explicit operator bool() const noexcept;
 
 	//核心接口
 	T* get() const noexcept;
@@ -247,33 +244,36 @@ private:
 	T* _ptr = nullptr;
 };
 
+//构造函数定义
 template <typename T>
-unique_ptr<T>::unique_ptr() noexcept:
+my_unique_ptr<T>::my_unique_ptr() noexcept :
 	_ptr(nullptr)
 {
 }
 
 template <typename T>
-unique_ptr<T>::unique_ptr(T* ptr) noexcept :
+my_unique_ptr<T>::my_unique_ptr(T* ptr) noexcept :
 	_ptr(ptr)
 {
 }
 
 template <typename T>
-unique_ptr<T>::unique_ptr(unique_ptr&& other) noexcept
+my_unique_ptr<T>::my_unique_ptr(my_unique_ptr&& other) noexcept
 {
 	_ptr = other._ptr;
 	other._ptr = nullptr;
 }
 
+//析构函数定义
 template <typename T>
-unique_ptr<T>::~unique_ptr() noexcept
+my_unique_ptr<T>::~my_unique_ptr() noexcept
 {
 	delete _ptr;
 }
 
+//运算符重载
 template <typename T>
-unique_ptr<T>& unique_ptr<T>::operator=(unique_ptr&& other) noexcept
+my_unique_ptr<T>& my_unique_ptr<T>::operator=(my_unique_ptr&& other) noexcept
 {
 	if (this == &other) return *this;
 	delete _ptr;
@@ -284,25 +284,32 @@ unique_ptr<T>& unique_ptr<T>::operator=(unique_ptr&& other) noexcept
 }
 
 template <typename T>
-T& unique_ptr<T>::operator*() const noexcept
+T& my_unique_ptr<T>::operator*() const noexcept
 {
 	return *_ptr;
 }
 
 template <typename T>
-T* unique_ptr<T>::operator->() const noexcept
+T* my_unique_ptr<T>::operator->() const noexcept
 {
 	return _ptr;
 }
 
 template <typename T>
-T* unique_ptr<T>::get() const noexcept
+my_unique_ptr<T>::operator bool() const noexcept
+{
+	return _ptr != nullptr;
+}
+
+//核心函数定义
+template <typename T>
+T* my_unique_ptr<T>::get() const noexcept
 {
 	return _ptr;
 }
 
 template <typename T>
-void unique_ptr<T>::reset() noexcept
+void my_unique_ptr<T>::reset() noexcept
 {
 	if (_ptr != nullptr)
 	{
@@ -312,9 +319,22 @@ void unique_ptr<T>::reset() noexcept
 }
 
 template <typename T>
-T* unique_ptr<T>::release() noexcept
+T* my_unique_ptr<T>::release() noexcept
 {
 	T* temp = _ptr;
 	_ptr = nullptr;
 	return temp;
+}
+
+// 辅助函数：智能指针构造
+template <typename T, typename... Args>
+my_shared_ptr<T> make_shared_smart(Args&&... args)
+{
+	return my_shared_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+template <typename T, typename... Args>
+my_unique_ptr<T> make_unique_smart(Args&&... args)
+{
+	return my_unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
